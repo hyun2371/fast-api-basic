@@ -1,4 +1,6 @@
 from fastapi.testclient import TestClient
+
+from database.orm import ToDo
 from main import app
 
 client = TestClient(app=app)
@@ -10,15 +12,18 @@ def test_health_check():
     assert response.json() == {"ping": "pong"}
 
 
-def test_get_todos():
+def test_get_todos(mocker):
     # order=ASC
+    mocker.patch("main.get_todos", return_value=[
+        ToDo(id=1, contents="FastAPI Section 0", is_done=True),
+        ToDo(id=2, contents="FastAPI Section 1", is_done=False),
+    ])
     response = client.get("/todos")
     assert response.status_code == 200
     assert response.json() == {
         "todos": [
             {"id": 1, "contents": "FastAPI Section 0", "is_done": True},
-            {"id": 2, "contents": "FastAPI Section 1", "is_done": True},
-            {"id": 3, "contents": "FastAPI Section 2", "is_done": False}
+            {"id": 2, "contents": "FastAPI Section 1", "is_done": False},
         ]
     }
 
@@ -27,8 +32,7 @@ def test_get_todos():
     assert response.status_code == 200
     assert response.json() == {
         "todos": [
-            {"id": 3, "contents": "FastAPI Section 2", "is_done": False},
-            {"id": 2, "contents": "FastAPI Section 1", "is_done": True},
+            {"id": 2, "contents": "FastAPI Section 1", "is_done": False},
             {"id": 1, "contents": "FastAPI Section 0", "is_done": True},
         ]
     }
