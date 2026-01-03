@@ -16,26 +16,6 @@ app = FastAPI()
 def health_check_handler():
     return {"ping": "pong"}
 
-
-todo_data = {
-    1: {
-        "id": 1,
-        "contents": "실전! FastAPI 섹션 0 수강",
-        "is_done": True,
-    },
-    2: {
-        "id": 2,
-        "contents": "실전! FastAPI 섹션 1 수강",
-        "is_done": False,
-    },
-    3: {
-        "id": 3,
-        "contents": "실전! FastAPI 섹션 2 수강",
-        "is_done": False,
-    },
-}
-
-
 @app.get("/todos", status_code=200)
 def get_todos_handler(
         order: str | None = None,
@@ -66,7 +46,7 @@ def get_todo_handler(
 def create_todo_handler(
         request: CreateToDoRequest,
         session: Session = Depends(get_db),
-):  # pydantic -> orm
+):  #  orm -> pydantic
     todo: ToDo = ToDo.create(request=request)  # id = None
     todo: ToDo = create_todo(session=session, todo=todo)  # DB 저장 후 ID 할당
 
