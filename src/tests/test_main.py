@@ -1,18 +1,13 @@
-from fastapi.testclient import TestClient
-
 from database.orm import ToDo
-from main import app
-
-client = TestClient(app=app)
 
 
-def test_health_check():
+def test_health_check(client):
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {"ping": "pong"}
 
 
-def test_get_todos(mocker):
+def test_get_todos(client, mocker):
     # order=ASC
     mocker.patch("main.get_todos", return_value=[
         ToDo(id=1, contents="FastAPI Section 0", is_done=True),
@@ -36,3 +31,56 @@ def test_get_todos(mocker):
             {"id": 1, "contents": "FastAPI Section 0", "is_done": True},
         ]
     }
+
+
+def test_get_todo(client, mocker):
+    # 200
+    # given
+    mocker.patch(
+        "main.get_todo_by_todo_id",
+        return_value=ToDo(id=1, contents="FastAPI Section 0", is_done=True),
+    )
+    # when
+    response = client.get("/todos/1")
+    # then
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": 1, "contents": "FastAPI Section 0", "is_done": True
+    }
+    # 404
+    mocker.patch(
+        "main.get_todo_by_todo_id", return_value=None
+    )
+    response = client.get("/todos/1")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "ToDo not found."}
+
+
+def test_create_todo(client, mocker):
+    create_spy = mocker.spy(ToDo, "create")
+    # <given>
+    # repository 함수 Mocking
+    mocker.patch(
+        "main.create_todo",
+        return_value=ToDo(id=1, contents="todo", is_done=True),
+    )
+    # 요청 보냄
+    body = {
+        "contents": "test",
+        "is_done": False,
+    }
+    # <when>
+    response = client.post("/todos", json=body)
+
+    # <then>
+    # todo: ToDo = ToDo.create(request=request) 검증
+    # = DB 저장 전 도메인 상태 검증
+    assert create_spy.spy_return.id is None
+    assert create_spy.spy_return.contents == "test"
+    assert create_spy.spy_return.is_done is False
+
+    # todo: ToDo = create_todo(session=session, todo=todo) 검증
+    # = DB 저장 후 http 응답 상태 검증
+    assert response.status_code == 201
+    assert response.json() == {"id": 1, "contents": "todo", "is_done": True}
+
